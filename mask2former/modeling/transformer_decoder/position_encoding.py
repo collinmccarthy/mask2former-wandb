@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # # Modified by Bowen Cheng from: https://github.com/facebookresearch/detr/blob/master/models/position_encoding.py
+# fmt: off
 """
 Various positional encodings for the transformer.
 """
@@ -38,7 +39,17 @@ class PositionEmbeddingSine(nn.Module):
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
 
         dim_t = torch.arange(self.num_pos_feats, dtype=torch.float32, device=x.device)
-        dim_t = self.temperature ** (2 * (dim_t // 2) / self.num_pos_feats)
+
+        # The following produces a warning which floods the screen:
+        #   UserWarning: __floordiv__ is deprecated, and its behavior will change in a future
+        #   version of pytorch. It currently rounds toward 0 (like the 'trunc' function NOT 'floor').
+        #   This results in incorrect rounding for negative values. To keep the current behavior,
+        #   use torch.div(a, b, rounding_mode='trunc'), or for actual floor division,
+        #   use torch.div(a, b, rounding_mode='floor')
+        # dim_t = self.temperature ** (2 * (dim_t // 2) / self.num_pos_feats)
+        dim_t = self.temperature ** (
+            2 * torch.div(dim_t, 2, rounding_mode="floor") / self.num_pos_feats
+        )
 
         pos_x = x_embed[:, :, :, None] / dim_t
         pos_y = y_embed[:, :, :, None] / dim_t
@@ -50,7 +61,7 @@ class PositionEmbeddingSine(nn.Module):
         ).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
-    
+
     def __repr__(self, _repr_indent=4):
         head = "Positional encoding " + self.__class__.__name__
         body = [
