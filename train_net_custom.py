@@ -2,7 +2,6 @@
 Modified from mask2former.train_net.py
 """
 
-# fmt: off  # Use fmt: off for easier diff with train_net.py
 try:
     # ignore ShapelyDeprecationWarning from fvcore
     from shapely.errors import ShapelyDeprecationWarning
@@ -14,14 +13,11 @@ except:
 
 import logging
 
+from torch.distributed.elastic.multiprocessing.errors import record
 import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
-from detectron2.engine import (
-    default_argument_parser,
-    default_setup,
-    launch,
-)
+from detectron2.engine import default_setup
 from detectron2.evaluation import verify_results
 from detectron2.projects.deeplab import add_deeplab_config  # type: ignore
 
@@ -35,7 +31,8 @@ from detectron2_plugin.train_net import (
     maybe_restart_run,
 )
 from detectron2_plugin.config import add_custom_config, update_custom_config
-from detectron2_plugin.events import setup_wandb
+from detectron2_plugin.engine import launch
+from detectron2_plugin.wandb import CustomWandbWriter
 
 logger = logging.getLogger(__name__)
 
@@ -58,25 +55,27 @@ def setup(args):
     cfg.merge_from_list(args.opts)
 
     # Update our custom config after merging with opts
-    update_custom_config(cfg=cfg, world_size=(args.num_machines * args.num_gpus))
-
+    update_custom_config(args=args, cfg=cfg)
     cfg.freeze()
-    default_setup(cfg, args)
-    if not args.eval_only:
-        setup_wandb(cfg, args)
 
-    # Use our logger setup method
+    # Restart before default_setup / wandb setup / logger init
+    maybe_restart_run(cfg=cfg, args=args)
+
+    default_setup(cfg, args)
+
+    if not args.eval_only:
+        CustomWandbWriter.setup_wandb(cfg, args)
+
+    # Use our logger setup method to add new loggers
     setup_loggers(cfg)
 
     return cfg
 
 
+@record  # Only used if launched via torchrun
 def main(args):
     """Same as train_net.py, but use CustomTrainer w/ CustomTrainerMixin instead of Trainer"""
     cfg = setup(args)
-
-    # Restart run if cfg.RESTART_RUN
-    maybe_restart_run(args=args, cfg=cfg)
 
     if args.eval_only:
         model = CustomTrainer.build_model(cfg)
@@ -99,14 +98,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    """Same as train_net.py"""
-    args = default_argument_parser().parse_args()
-    print("Command Line Args:", args)
-    launch(
-        main,
-        args.num_gpus,
-        num_machines=args.num_machines,
-        machine_rank=args.machine_rank,
-        dist_url=args.dist_url,
-        args=(args,),
-    )
+    launch(main_func=main)
