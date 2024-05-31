@@ -138,8 +138,11 @@ class HungarianMatcher(nn.Module):
                 cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
 
                 # Compute the dice loss betwen masks
-                cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
-            
+                # cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
+
+                # Updated: Don't use jit, see https://github.com/facebookresearch/Mask2Former/issues/4
+                cost_dice = batch_dice_loss(out_mask, tgt_mask)
+
             # Final cost matrix
             C = (
                 self.cost_mask * cost_mask

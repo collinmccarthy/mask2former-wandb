@@ -19,11 +19,19 @@ import detectron2.utils.comm as comm
 from detectron2.config import CfgNode
 from detectron2.data import MetadataCatalog
 from detectron2.data.datasets.coco import convert_to_coco_json
-from detectron2.evaluation.coco_evaluation import COCOEvaluator, _evaluate_predictions_on_coco
-from detectron2.evaluation.fast_eval_api import COCOeval_opt
+from detectron2.evaluation.coco_evaluation import (
+    COCOEvaluator,
+    _evaluate_predictions_on_coco,
+)
 from detectron2.structures import Boxes, BoxMode, pairwise_iou
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import create_small_table
+
+# Added, see https://github.com/facebookresearch/Mask2Former/issues/212
+try:
+    from detectron2.evaluation.fast_eval_api import COCOeval_opt
+except ImportError:
+    COCOeval_opt = COCOeval
 
 
 # modified from COCOEvaluator for instance segmetnat
@@ -50,7 +58,9 @@ class InstanceSegEvaluator(COCOEvaluator):
 
         # unmap the category ids for COCO
         if hasattr(self._metadata, "thing_dataset_id_to_contiguous_id"):
-            dataset_id_to_contiguous_id = self._metadata.thing_dataset_id_to_contiguous_id
+            dataset_id_to_contiguous_id = (
+                self._metadata.thing_dataset_id_to_contiguous_id
+            )
             # all_contiguous_ids = list(dataset_id_to_contiguous_id.values())
             # num_classes = len(all_contiguous_ids)
             # assert min(all_contiguous_ids) == 0 and max(all_contiguous_ids) == num_classes - 1
@@ -93,7 +103,8 @@ class InstanceSegEvaluator(COCOEvaluator):
                     coco_results,
                     task,
                     kpt_oks_sigmas=self._kpt_oks_sigmas,
-                    use_fast_impl=self._use_fast_impl,
+                    # Modified, see https://github.com/facebookresearch/Mask2Former/issues/212
+                    cocoeval_fn=COCOeval_opt if self._use_fast_impl else COCOeval,
                     img_ids=img_ids,
                     max_dets_per_image=self._max_dets_per_image,
                 )
