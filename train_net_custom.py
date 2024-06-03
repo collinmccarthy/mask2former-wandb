@@ -25,14 +25,15 @@ from detectron2.projects.deeplab import add_deeplab_config  # type: ignore
 from mask2former import add_maskformer2_config
 from train_net import Trainer
 
-from detectron2_plugin.train_net import (
+# Our custom plugin
+from mask2former.detectron2_plugin.train_net import (
     CustomTrainerMixin,
     setup_loggers,
     maybe_restart_run,
 )
-from detectron2_plugin.config import add_custom_config, update_custom_config
-from detectron2_plugin.engine import launch
-from detectron2_plugin.wandb import CustomWandbWriter
+from mask2former.detectron2_plugin.config import add_custom_config, update_custom_config
+from mask2former.detectron2_plugin.engine import launch
+from mask2former.detectron2_plugin.wandb import CustomWandbWriter
 
 logger = logging.getLogger(__name__)
 

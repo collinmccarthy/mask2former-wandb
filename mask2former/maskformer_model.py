@@ -11,7 +11,10 @@ from detectron2.modeling import META_ARCH_REGISTRY, build_backbone, build_sem_se
 from detectron2.modeling.backbone import Backbone
 from detectron2.modeling.postprocessing import sem_seg_postprocess
 from detectron2.structures import Boxes, ImageList, Instances, BitMasks
-from detectron2.utils.memory import retry_if_cuda_oom
+
+# Update: use our retry_if_cuda_oom which uses FP32 for CPU tensors by default
+# from detectron2.utils.memory import retry_if_cuda_oom
+from .detectron2_plugin.utils import retry_if_cuda_oom
 
 from .modeling.criterion import SetCriterion
 from .modeling.matcher import HungarianMatcher
