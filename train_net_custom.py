@@ -88,6 +88,7 @@ def main(args):
             res.update(CustomTrainer.test_with_TTA(cfg, model))
         if comm.is_main_process():
             verify_results(cfg, res)
+        logger.info(f"Testing finished. Exiting.")
         return res
 
     trainer = CustomTrainer(cfg)
